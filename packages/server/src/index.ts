@@ -31,14 +31,20 @@ type Variables = {
     exp:number;
   };
 };
-const app = new Hono().basePath("/api");
+const app = new Hono<{Variables:Variables}>().basePath("/api");
 
 app.use("*", logger());
-const JWT_SECRET = process.env.JWT_SECRET!;
+const hour = 60 * 60;
 
-if(!JWT_SECRET) throw new Error("JWT secret is missing");
-const hour = 60*60;
+function getJwtSecret() {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error("JWT secret is missing");
+  }
+  return secret;
+}
 
+console.log("BUILD JWT_SECRET:", process.env.JWT_SECRET);
 
 const authGuard = async (c:Context, next:Next) =>
 {
@@ -50,7 +56,7 @@ const authGuard = async (c:Context, next:Next) =>
 
   try
   {
-    const payload = await verify(token, JWT_SECRET,"HS256");
+    const payload = await verify(token, getJwtSecret(),"HS256");
     c.set("user", payload as Variables["user"]);
     await next();
   }
@@ -129,7 +135,7 @@ app.post("/login", async (c) => {
       exp: Math.floor(Date.now() / 1000) + hour,
     };
 
-    const token = await sign(payload, JWT_SECRET);
+    const token = await sign(payload, getJwtSecret());
 
     setCookie(c, "auth_token", token, {
       httpOnly: true,
@@ -170,7 +176,7 @@ app.post("/logout", (c) => {
 
 
 app.get("/get-session", authGuard, (c) => {
-  const payload = c.get("jwtPayload");
+  const payload = c.get("user");
 
   return c.json({
     authenticated: true,
