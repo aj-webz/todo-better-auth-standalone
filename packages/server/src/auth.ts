@@ -2,7 +2,7 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import dotenv from "dotenv";
 dotenv.config({ path: "../../.env" });
-import { user, session, account, getDb } from "../../db/src/index.js";
+import { user, session, account, getDb } from "../../db/src/index";
 
 if (!process.env.BETTER_AUTH_URL) {
   throw new Error("Not found Better auth");

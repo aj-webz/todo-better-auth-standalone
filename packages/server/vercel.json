@@ -1,9 +1,11 @@
 {
   "version": 2,
+  "buildCommand": "pnpm build",
+  "outputDirectory": "dist",
   "rewrites": [
     { 
       "source": "/api/(.*)", 
-      "destination": "src/index.ts" 
+      "destination": "index.js" 
     }
   ]
 }
