@@ -4,7 +4,7 @@ import { sign, verify } from "hono/jwt";
 import { logger } from "hono/logger";
 import { nanoid } from "nanoid";
 //import bcrypt from "bcryptjs";
-import { getDb, todos } from "../../db/src/index"
+import { getDb, todos } from "../../db/src/index.js"
 import type { Context, Next } from "hono"
 import * as z from "zod";
 import {
