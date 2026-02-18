@@ -16,5 +16,5 @@ export default defineConfig({
     js: `import { createRequire } from 'module'; const require = createRequire(import.meta.url);`,},
  
   external: ["events", "fs", "path", "os", "crypto", "async_hooks", "http", "https", "stream", "url", "util"],
-  noExternal: ["@repo/shared", "@repo/db", "@repo/auth"],
+  noExternal: ["@repo/shared", "@repo/db"],
 });
