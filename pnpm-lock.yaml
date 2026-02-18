@@ -226,9 +226,6 @@ importers:
       '@hono/node-server':
         specifier: ^1.19.9
         version: 1.19.9(hono@4.11.8)
-      '@repo/auth':
-        specifier: workspace:*
-        version: link:../auth
       '@repo/db':
         specifier: workspace:*
         version: link:../db

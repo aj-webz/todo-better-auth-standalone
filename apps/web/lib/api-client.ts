@@ -1,8 +1,10 @@
-import createFetchClient from "openapi-fetch";
-import createClient from "openapi-react-query";
-import type {paths} from "./api-schema"
+import createClient from "openapi-fetch";
+import createReactQueryHooks from "openapi-react-query";
+import type { paths } from "./api-schema";
 
-export const fetchClient = createFetchClient<paths>({
-    baseUrl: "http://localhost:3000", 
-})
-export const $api = createClient(fetchClient);
+const client = createClient<paths>({baseUrl:
+    "/api"
+});
+export const api = createReactQueryHooks(client);
+
+export { paths }

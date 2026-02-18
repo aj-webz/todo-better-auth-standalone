@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { LayoutDashboard, LogOut, Loader2 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { authClient } from "@/lib/auth-client"; 
 
 import {
   NavigationMenu,
@@ -50,29 +51,30 @@ export default function Navbar() {
   const router = useRouter();
   const queryClient = useQueryClient();
 
+ 
   const { data: session, isLoading } = useQuery({
     queryKey: ["session"],
     queryFn: async () => {
-      const res = await fetch("/api/get-session");
-      if (!res.ok) return null;
-      return res.json();
+      
+      const { data, error } = await authClient.getSession();
+      if (error) throw new Error(error.message);
+      return data; 
     },
   });
 
+ 
   const { mutate: logout, isPending: isLoggingOut } = useMutation({
     mutationFn: async () => {
-      const res = await fetch("/api/logout", { method: "POST" });
-      if (!res.ok) throw new Error("Logout failed");
-      return res.json();
+      const { error } = await authClient.signOut();
+      if (error) throw new Error(error.message);
     },
     onSuccess: () => {
       queryClient.clear();
       toast.success("Logged out successfully");
       router.push("/login");
-      router.refresh();
     },
-    onError: () => {
-      toast.error("Failed to logout");
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to logout");
     },
   });
 
@@ -96,11 +98,18 @@ export default function Navbar() {
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="rounded-full hover:bg-neutral-100 p-1 transition disabled:opacity-50" disabled={isLoggingOut}>
+            <button 
+              className="rounded-full hover:bg-neutral-100 p-1 transition disabled:opacity-50" 
+              disabled={isLoggingOut || isLoading}
+            >
               <Avatar className="h-8 w-8">
-                <AvatarImage src="/avatar.png" alt="User" />
+                <AvatarImage src={session?.user?.image || "/avatar.png"} alt="User" />
                 <AvatarFallback>
-                  {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : (session?.user?.email?.[0].toUpperCase() || "U")}
+                  {isLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    session?.user?.email?.[0]?.toUpperCase() || "U"
+                  )}
                 </AvatarFallback>
               </Avatar>
             </button>
@@ -108,8 +117,9 @@ export default function Navbar() {
 
           <DropdownMenuContent align="end" className="w-48">
             <div className="px-2 py-1.5 text-xs text-muted-foreground truncate">
-              {session?.user?.email || "Loading..."}
+              {session?.user?.email || (isLoading ? "Loading..." : "Not logged in")}
             </div>
+            
             <DropdownMenuItem className="flex items-center gap-2 cursor-pointer">
               <LayoutDashboard className="h-4 w-4" />
               Profile
@@ -120,7 +130,11 @@ export default function Navbar() {
               disabled={isLoggingOut}
               onClick={() => logout()}
             >
-              {isLoggingOut ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
+              {isLoggingOut ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <LogOut className="h-4 w-4" />
+              )}
               Logout
             </DropdownMenuItem>
           </DropdownMenuContent>

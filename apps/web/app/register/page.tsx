@@ -50,7 +50,7 @@ export default function RegisterPage() {
 
   const { mutate: registerUser } = useMutation({
     mutationFn: async (values: RegisterFormValues) => {
-      const response = await fetch("/api/auth/sign-up/email", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/sign-up/email`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -71,7 +71,7 @@ export default function RegisterPage() {
     },
     onSuccess: () => {
       toast.success("Account created successfully")
-      router.push("/dashboard")
+      router.push("/login")
     },
     onError: (error: Error) => {
       toast.error(error.message)

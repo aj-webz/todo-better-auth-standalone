@@ -7,7 +7,9 @@ import {
   type TodoStatusEnum,
 } from "@repo/shared";
 
-const baseUrl = "/api/todos";
+const baseUrl = process.env.NODE_ENV === "production"
+  ? "https://todo-better-auth-standalone-server.vercel.app/api/todos"
+  : "http://localhost:3001/api/todos";
 
 
 export async function readTodos(): Promise<Todo[]> {
