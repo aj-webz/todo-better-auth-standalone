@@ -4,7 +4,7 @@ import { sign, verify } from "hono/jwt";
 import { logger } from "hono/logger";
 import { nanoid } from "nanoid";
 import bcrypt from "bcryptjs";
-import { getDb, todos, users } from "@repo/db";
+import { getDb, todos } from "../../db/src"
 import type { Context, Next } from "hono"
 import * as z from "zod";
 import {
@@ -25,272 +25,286 @@ import {
 import { describeRoute, resolver, validator } from "hono-openapi";
 import { openAPIRouteHandler } from "hono-openapi";
 import { Scalar } from "@scalar/hono-api-reference"
+import { auth } from "./auth";
+import dotenv from "dotenv";
+
 
 
 
 type Variables = {
-  user: {
-    sub: string;
-    email: string;
-    role: "user" | "admin";
-    exp: number;
-  };
-};
+  user: typeof auth.$Infer.Session.user | null;
+  session :typeof auth.$Infer.Session.session | null;
+}
 
-const app = new Hono<{ Variables: Variables }>().basePath("/api");
+const app = new Hono<{ Variables: Variables }>().basePath("/api")
+
+app.on(["POST","GET","DELETE"],"/auth/*",(c)=>
+{
+  return auth.handler(c.req.raw);
+})
+
+
 app.use("*", logger());
 
 const hour = 60 * 60;
 
-function getJwtSecret() {
-  const secret = process.env.JWT_SECRET;
 
-  if (!secret) {
-    if (process.env.NODE_ENV === "production") {
-      return "build-time-dummy-key";
-    }
-    throw new Error("JWT secret is missing");
-  }
-  return secret;
-}
-
-const authGuard = async (c: Context, next: Next) => {
-  const token = getCookie(c, "auth_token");
-  if (!token) {
-    return c.json({ error: "Unauthorised access" }, 401);
-  }
-
-  try {
-    const payload = await verify(token, getJwtSecret(), "HS256");
-    c.set("user", payload as Variables["user"]);
+app.use("*", async(c,next)=>
+{
+  const session = await auth.api.getSession({headers:c.req.raw.headers});
+  if(!session)
+  {
+    c.set("user",null);
+    c.set("session",null);
     await next();
-  } catch {
-    return c.json({ error: "Invalid or expired token" }, 401);
+    return;
   }
-};
+  c.set("user",session.user);
+  c.set("session",session.session);
+  await next();
+});
 
 
-app.post(
-  "/register",
-  describeRoute({
-    description: "Register new user",
-    responses: {
-      201: {
-        description: "User created",
-        content: {
-          "application/json": {
-            schema: resolver(UserResponseSchema),
-          },
-        },
-      },
-      400: {
-        description: "Validation error",
-        content: {
-          "application/json": { schema: resolver(ErrorSchema) },
-        },
-      },
-      409: {
-        description: "User already exists",
-        content: {
-          "application/json": { schema: resolver(ErrorSchema) },
-        },
-      },
-      500: {
-        description: "Internal server error",
-        content: {
-          "application/json": { schema: resolver(ErrorSchema) },
-        },
-      },
-    },
-  }),
-  validator("json", RegisterSchema),
-  async (c) => {
-    try {
-      const db = getDb();
-      const { email, password, role } = c.req.valid("json");
-
-      const [existing] = await db.select().from(users).where(eq(users.email, email));
-      if (existing) {
-        return c.json({ error: "user already exists" }, 409);
-      }
-
-      const hashedPassword = await bcrypt.hash(password, 10);
-
-      const [newUser] = await db.insert(users).values({
-        email,
-        password: hashedPassword,
-        role,
-      }).returning();
-
-      return c.json({
-        success: true,
-        user: newUser,
-      }, 201);
-
-    } catch (error) {
-      return c.json({ error: "Internal server error" }, 500);
-    }
-  }
-);
 
 
-app.post(
-  "/login",
-  describeRoute({
-    description: "User login",
-    responses: {
-      200: {
-        description: "Login success",
-        content: {
-          "application/json": {
-            schema: resolver(UserResponseSchema),
-          },
-        },
-      },
-      400: {
-        description: "Validation error",
-        content: {
-          "application/json": { schema: resolver(ErrorSchema) },
-        },
-      },
-      401: {
-        description: "Invalid credentials",
-        content: {
-          "application/json": { schema: resolver(ErrorSchema) },
-        },
-      },
-      403: {
-        description: "Forbidden role",
-        content: {
-          "application/json": { schema: resolver(ErrorSchema) },
-        },
-      },
-      500: {
-        description: "Internal server error",
-        content: {
-          "application/json": { schema: resolver(ErrorSchema) },
-        },
-      },
-    },
-  }),
-  validator("json", LoginSchema),
-  async (c) => {
-    try {
-      const db = getDb();
-      const { email, password, role } = c.req.valid("json");
-
-      const [user] = await db.select().from(users).where(eq(users.email, email));
-      if (!user) {
-        return c.json({ error: "Invalid credentials" }, 401);
-      }
-
-      const validPassword = await bcrypt.compare(password, user.password);
-      if (!validPassword) {
-        return c.json({ error: "Invalid credentials" }, 401);
-      }
-
-      if (user.role !== role) {
-        return c.json({ error: `You are not allowed to login as ${role}` }, 403);
-      }
-
-      const payload = {
-        sub: user.id,
-        email: user.email,
-        role: user.role,
-        exp: Math.floor(Date.now() / 1000) + hour,
-      };
-
-      const token = await sign(payload, getJwtSecret());
-
-      setCookie(c, "auth_token", token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "Lax",
-        path: "/",
-        maxAge: hour,
-      });
-
-      return c.json({
-        success: true,
-        user: user,
-      });
-
-    } catch {
-      return c.json({ error: "Internal server error" }, 500);
-    }
-  }
-);
 
 
-app.post(
-  "/logout",
-  describeRoute({
-    description: "Logout user",
-    responses: {
-      200: {
-        description: "Logout success",
-        content: {
-          "application/json": {
-            schema: resolver(z.object({ success: z.boolean() })),
-          },
-        },
-      },
-      401: {
-        description: "Unauthorized",
-        content: {
-          "application/json": { schema: resolver(ErrorSchema) },
-        },
-      },
-    },
-  }),
-  authGuard,
-  (c) => {
-    deleteCookie(c, "auth_token", { path: "/" });
-    return c.json({ success: true });
-  }
-);
+
+
+// function getJwtSecret() {
+//   const secret = process.env.JWT_SECRET;
+
+//   if (!secret) {
+//     if (process.env.NODE_ENV === "production") {
+//       return "build-time-dummy-key";
+//     }
+//     throw new Error("JWT secret is missing");
+//   }
+//   return secret;
+// }
+
+// const authGuard = async (c: Context, next: Next) => {
+//   const token = getCookie(c, "auth_token");
+//   if (!token) {
+//     return c.json({ error: "Unauthorised access" }, 401);
+//   }
+
+//   try {
+//     const payload = await verify(token, getJwtSecret(), "HS256");
+//     c.set("user", payload as Variables["user"]);
+//     await next();
+//   } catch {
+//     return c.json({ error: "Invalid or expired token" }, 401);
+//   }
+// };
+
+
+// app.post(
+//   "/register",
+//   describeRoute({
+//     description: "Register new user",
+//     responses: {
+//       201: {
+//         description: "User created",
+//         content: {
+//           "application/json": {
+//             schema: resolver(UserResponseSchema),
+//           },
+//         },
+//       },
+//       400: {
+//         description: "Validation error",
+//         content: {
+//           "application/json": { schema: resolver(ErrorSchema) },
+//         },
+//       },
+//       409: {
+//         description: "User already exists",
+//         content: {
+//           "application/json": { schema: resolver(ErrorSchema) },
+//         },
+//       },
+//       500: {
+//         description: "Internal server error",
+//         content: {
+//           "application/json": { schema: resolver(ErrorSchema) },
+//         },
+//       },
+//     },
+//   }),
+//   validator("json", RegisterSchema),
+//   async (c) => {
+//     try {
+//       const db = getDb();
+//       const { email, password, role } = c.req.valid("json");
+
+//       const [existing] = await db.select().from(users).where(eq(users.email, email));
+//       if (existing) {
+//         return c.json({ error: "user already exists" }, 409);
+//       }
+
+//       const hashedPassword = await bcrypt.hash(password, 10);
+
+//       const [newUser] = await db.insert(users).values({
+//         email,
+//         password: hashedPassword,
+//         role,
+//       }).returning();
+
+//       return c.json({
+//         success: true,
+//         user: newUser,
+//       }, 201);
+
+//     } catch (error) {
+//       return c.json({ error: "Internal server error" }, 500);
+//     }
+//   }
+// );
+
+
+// app.post(
+//   "/login",
+//   describeRoute({
+//     description: "User login",
+//     responses: {
+//       200: {
+//         description: "Login success",
+//         content: {
+//           "application/json": {
+//             schema: resolver(UserResponseSchema),
+//           },
+//         },
+//       },
+//       400: {
+//         description: "Validation error",
+//         content: {
+//           "application/json": { schema: resolver(ErrorSchema) },
+//         },
+//       },
+//       401: {
+//         description: "Invalid credentials",
+//         content: {
+//           "application/json": { schema: resolver(ErrorSchema) },
+//         },
+//       },
+//       403: {
+//         description: "Forbidden role",
+//         content: {
+//           "application/json": { schema: resolver(ErrorSchema) },
+//         },
+//       },
+//       500: {
+//         description: "Internal server error",
+//         content: {
+//           "application/json": { schema: resolver(ErrorSchema) },
+//         },
+//       },
+//     },
+//   }),
+//   validator("json", LoginSchema),
+//   async (c) => {
+//     try {
+//       const db = getDb();
+//       const { email, password, role } = c.req.valid("json");
+
+//       const [user] = await db.select().from(users).where(eq(users.email, email));
+//       if (!user) {
+//         return c.json({ error: "Invalid credentials" }, 401);
+//       }
+
+//       const validPassword = await bcrypt.compare(password, user.password);
+//       if (!validPassword) {
+//         return c.json({ error: "Invalid credentials" }, 401);
+//       }
+
+//       if (user.role !== role) {
+//         return c.json({ error: `You are not allowed to login as ${role}` }, 403);
+//       }
+
+//       const payload = {
+//         sub: user.id,
+//         email: user.email,
+//         role: user.role,
+//         exp: Math.floor(Date.now() / 1000) + hour,
+//       };
+
+//       const token = await sign(payload, getJwtSecret());
+
+//       setCookie(c, "auth_token", token, {
+//         httpOnly: true,
+//         secure: process.env.NODE_ENV === "production",
+//         sameSite: "Lax",
+//         path: "/",
+//         maxAge: hour,
+//       });
+
+//       return c.json({
+//         success: true,
+//         user: user,
+//       });
+
+//     } catch {
+//       return c.json({ error: "Internal server error" }, 500);
+//     }
+//   }
+// );
+
+
+// app.post(
+//   "/logout",
+//   describeRoute({
+//     description: "Logout user",
+//     responses: {
+//       200: {
+//         description: "Logout success",
+//         content: {
+//           "application/json": {
+//             schema: resolver(z.object({ success: z.boolean() })),
+//           },
+//         },
+//       },
+//       401: {
+//         description: "Unauthorized",
+//         content: {
+//           "application/json": { schema: resolver(ErrorSchema) },
+//         },
+//       },
+//     },
+//   }),
+//   authGuard,
+//   (c) => {
+//     deleteCookie(c, "auth_token", { path: "/" });
+//     return c.json({ success: true });
+//   }
+// );
 
 
 app.get(
-  "/get-session",
-  describeRoute({
-    description: "Get current authenticated session",
-    responses: {
-      200: {
-        description: "Session retrieved",
-        content: {
-          "application/json": {
-            schema: resolver(sessionResponseSchema),
-          },
-        },
-      },
-      401: {
-        description: "Unauthorized",
-        content: {
-          "application/json": { schema: resolver(ErrorSchema) },
-        },
-      },
-      500: {
-        description: "Internal error",
-        content: {
-          "application/json": { schema: resolver(ErrorSchema) },
-        },
-      },
-    },
-  }),
-  authGuard,
-  async (c) => {
-    try {
-      return c.json({
-        authenticated: true,
-        user: c.get("user"),
-      });
-    } catch {
-      return c.json({ error: "Internal server error" }, 500);
-    }
+  "/auth/session",async (c)=>
+  {
+    const user = c.get("user");
+    const session = c.get("session")
+    if(!user) return c.body(null,401);
+    return c.json({
+      session,user,
+    });
   }
 );
 
+
+// app.post("/auth/logout",async (c)=>{
+//   const session = await auth.api.getSession({headers:c.req.raw.headers});
+//   if(!session) return c.json({error:"Unauthorized"},401);
+//   await auth.api.signOut();
+//   return c.json({success:true},200)
+// })
+
+const authGuard = async (c:Context,next:Next) =>{
+const user = c.get("user");
+if(!user) return c.json({error:"unauthorised"},401);
+await next();
+}
 
 app.get(
   "/todos",
@@ -480,5 +494,7 @@ app.get("/scalar-docs",Scalar((c)=>({
   theme:"deepSpace",
   layout:"modern",
 })))
+
+
 
 export default app;

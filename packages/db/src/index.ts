@@ -1,7 +1,7 @@
 import pkg from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
 import * as schema from "./schema";
-
+import { user,session,account } from "./auth-schema"
 
 const { Pool } = pkg;
 
@@ -33,3 +33,4 @@ export function getDb() {
 
 export {todos} from "./schema";
 export { users} from "./schema"
+export {user,account,session};
