@@ -3,9 +3,6 @@
   "buildCommand": "pnpm build",
   "outputDirectory": "dist",
   "rewrites": [
-    { 
-      "source": "/api/(.*)", 
-      "destination": "index.js" 
-    }
+    { "source": "/api/(.*)", "destination": "index.js" }
   ]
 }
