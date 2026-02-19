@@ -28,7 +28,7 @@ import { Scalar } from "@scalar/hono-api-reference"
 import { auth } from "./auth";
 import { cors } from "hono/cors";
 import { handle } from "hono/vercel"
-import { serve } from "@hono/node-server"
+
 
 
 type Variables = {
@@ -520,15 +520,9 @@ app.get("/scalar-docs",Scalar((c)=>({
   theme:"deepSpace",
   layout:"modern",
 })))
-// const port=3001
-// serve({
-//   fetch:app.fetch,
-//   port:port
-// })
-
-// console.log("Server running in http://localhost:3001");
 
 
 
-export default handle(app);
 
+export { app };
+export default app.fetch.bind(app) ;
