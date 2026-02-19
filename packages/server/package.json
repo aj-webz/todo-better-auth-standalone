@@ -3,10 +3,10 @@
   "private": true,
   "type": "module",
   "version": "1.0.0",
-  "main": "./src/index.ts",
+  "main": "./api/index.js",
   "types": "./src/index.ts",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./api/index.js"
   },
   "scripts": {
     "dev": "pnpm exec tsx watch --require dotenv/config src/index.ts",
