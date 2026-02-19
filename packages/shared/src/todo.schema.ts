@@ -24,7 +24,7 @@ const TodoSchema = z.object({
 const CreateTodoFormSchema = z.object({
   title: z.string().min(1),
   description: z.string().min(1),
-  dueDate: z.coerce.date(),
+  dueDate: z.date(),
   dueTime: z
     .string()
     .regex(/^([01]\d|2[0-3]):([0-5]\d):([0-5]\d)$/, "Time must be HH:mm:ss"),
@@ -37,7 +37,7 @@ const CreateTodoSchema = CreateTodoFormSchema.transform((data) => {
   const m = Number(parts[1]);
   const s = Number(parts[2]);
 
-  const end = new Date(data.dueDate);
+  const end = new Date(data.dueDate!);
   end.setHours(h, m, s, 0);
   return {
     title: data.title,

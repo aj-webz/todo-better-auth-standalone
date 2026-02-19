@@ -40,17 +40,19 @@ export default function LoginPage() {
   })
 
   const onSubmit = async (data: LoginFormValues) => {
-    const { error } = await authClient.signIn.email({
+    const result = await authClient.signIn.email({
       email: data.email,
       password: data.password,
     })
+    console.log()
 
-    if (error) {
-      toast.error(error.message)
-      return
-    }
-
-    window.alert("Welcome back")
+ 
+  if ("error" in result && result.error) {
+    toast.error(result.error.message);
+    return;
+  }
+   console.log("Sign-in result:", result);
+  console.log("Browser cookies:", document.cookie);
     router.push("/dashboard")
   }
 

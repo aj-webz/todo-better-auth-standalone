@@ -11,11 +11,11 @@ import {
   Menu,
   ChevronLeft,
 } from "lucide-react"
-import { useSession } from "@/hooks/useSession";
+import { authClient } from "@/lib/auth-client"
 
 export default function Sidebar() {
   const [open, setOpen] = useState(true)
-  const { user, loading } = useSession();
+  const { data,isPending,error, } = authClient.useSession()
   return (
     <div
       onClick={() => setOpen((prev) => !prev)}
@@ -55,9 +55,9 @@ export default function Sidebar() {
             label="Manage"
             open={open}
           />
-          {!loading && user?.role === "admin" && (
+          {/* {!isPending && data === "admin" && (
             <SidebarItem href="/admin" label="Administer" open={open} icon={<Shield size={20} />} />
-          )}
+          )} */}
         </nav>
 
       </div>

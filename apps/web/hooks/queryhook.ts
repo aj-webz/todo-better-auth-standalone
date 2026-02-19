@@ -1,5 +1,5 @@
 "use client";
-
+import z from "zod"
 import {
   useQuery,
   useMutation,
@@ -49,14 +49,15 @@ export function useCreateTodo() {
 
 export function useUpdateTodoStatus() {
   const queryClient = useQueryClient();
-
+type TodoStatus = z.infer<typeof TodoStatusEnum>;
+  
   return useMutation({
     mutationFn: ({
       id,
       status,
     }: {
       id: string;
-      status: typeof TodoStatusEnum._type;
+      status: TodoStatus;
     }) => updateTodoStatus(id, status),
 
     

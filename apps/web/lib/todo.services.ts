@@ -6,12 +6,13 @@ import {
   type CreateTodoFormInput,
   type TodoStatusEnum,
 } from "@repo/shared";
+import z from "zod"
 
 const baseUrl = process.env.NODE_ENV === "production"
   ? "https://todo-better-auth-standalone-server.vercel.app/api/todos"
   : "http://localhost:3001/api/todos";
 
-
+ type TodoStatus = z.infer<typeof TodoStatusEnum>
 export async function readTodos(): Promise<Todo[]> {
   const res = await fetch(baseUrl);
 
@@ -41,7 +42,7 @@ export async function createTodo(
 
 export async function updateTodoStatus(
   id: string,
-  status: typeof TodoStatusEnum._type
+  status: TodoStatus
 ): Promise<Todo> {
   const res = await fetch(`${baseUrl}/${id}/status`, {
     method: "PATCH",

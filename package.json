@@ -26,10 +26,10 @@
   "dependencies": {
     "@hello-pangea/dnd": "^18.0.1",
     "@hono/standard-validator": "^0.2.2",
-    "@repo/db":"workspace:*",
     "@hono/swagger-ui": "^0.5.3",
     "@hookform/resolvers": "^5.2.2",
     "@pulumi/awsx": "^3.1.0",
+    "@repo/db": "workspace:*",
     "@scalar/hono-api-reference": "^0.9.41",
     "@tanstack/react-query": "^5.90.20",
     "bcrypt": "^6.0.0",
@@ -46,7 +46,7 @@
     "openapi-react-query": "^0.5.4",
     "react-hook-form": "^7.71.1",
     "sonner": "^2.0.7",
-    "zod": "^3.25.76",
+    "zod": "^4.3.6",
     "zod-openapi": "4"
   },
   "pnpm": {

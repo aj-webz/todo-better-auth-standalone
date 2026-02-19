@@ -28,6 +28,7 @@ import { Scalar } from "@scalar/hono-api-reference"
 import { auth } from "./auth";
 import { cors } from "hono/cors";
 import { handle } from "hono/vercel"
+import { serve } from "@hono/node-server"
 
 
 type Variables = {
@@ -43,11 +44,11 @@ const app = new Hono<{ Variables: Variables }>().basePath("/api")
 app.use(
   "*", 
   cors({
-    origin: ["http://localhost:3000", "https://todo-better-auth-standalone-web.vercel.app"], 
-    allowHeaders: ["Content-Type","Authorization"],
+    origin: "http://localhost:3000", 
+    allowHeaders: ["Content-Type","Authorization","Cookie"],
     allowMethods: ["POST", "GET", "OPTIONS","PATCH","DELETE"],
     credentials: true,
-        exposeHeaders: ["set-cookie"]
+    //exposeHeaders: ["user"]
        
   }),
 );
@@ -63,20 +64,20 @@ app.use("*", logger());
 const hour = 60 * 60;
 
 
-app.use("*", async(c,next)=>
-{
-  const session = await auth.api.getSession({headers:c.req.raw.headers});
-  if(!session)
-  {
-    c.set("user",null);
-    c.set("session",null);
-    await next();
-    return;
-  }
-  c.set("user",session.user);
-  c.set("session",session.session);
-  await next();
-});
+// app.use("*", async(c,next)=>
+// {
+//   const session = await auth.api.getSession({headers:c.req.raw.headers});
+//   if(!session)
+//   {
+//     c.set("user",null);
+//     c.set("session",null);
+//     await next();
+//     return;
+//   }
+//   c.set("user",session.user);
+//   //c.set("session",session.session);
+//   await next();
+// });
 
 
 
@@ -320,7 +321,8 @@ const authGuard = async (c: Context, next: Next) => {
     return c.json({ error: "Unauthorized user" }, 401);
   }
   c.set("user", session.user);
-  c.set("session",session.session);
+  
+// c.set("session",session.session);
   await next();
 };
 
@@ -349,6 +351,11 @@ app.get(
   //authGuard,
   async (c) => {
     const db = getDb();
+    // const user = c.get("user");
+    // if(!user)
+    // {
+    //   return c.json({message:"Unauthorized access"},401);
+    // }
     const data = await db.select().from(todos);
     return c.json(TodoSchema.array().parse(data));
   }
@@ -383,7 +390,7 @@ app.post(
     },
   }),
   validator("json", CreateTodoFormSchema),
-  //authGuard,
+ // authGuard,
   async (c) => {
     const db = getDb();
     const body = c.req.valid("json");
@@ -484,7 +491,7 @@ app.delete(
       },
     },
   }),
- // authGuard,
+ //authGuard,
   async (c) => {
     const db = getDb();
     const { id } = c.req.param();
@@ -513,8 +520,13 @@ app.get("/scalar-docs",Scalar((c)=>({
   theme:"deepSpace",
   layout:"modern",
 })))
+const port=3001
+serve({
+  fetch:app.fetch,
+  port:port
+})
 
-
+console.log("Server running in http://localhost:3001");
 
 
 

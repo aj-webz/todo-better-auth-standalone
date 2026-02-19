@@ -19,9 +19,9 @@ import { useMutation } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
 import { Eye, EyeOff } from "lucide-react"
+import { authClient } from "@/lib/auth-client"
 
-const registerSchema = z
-  .object({
+const registerSchema = z.object({
     name: z.string().min(2, "Name must be at least 2 characters"),
     email: z.string().email("Invalid email address"),
     password: z.string().min(6, "Password must be at least 6 characters"),
@@ -50,24 +50,11 @@ export default function RegisterPage() {
 
   const { mutate: registerUser } = useMutation({
     mutationFn: async (values: RegisterFormValues) => {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/sign-up/email`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          name: values.name,
-          email: values.email,
-          password: values.password,
-        }),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.message || "Registration failed")
-      }
-
-      return data
+      const { error } = await  authClient.signUp.email({
+        name:values.name,
+        email:values.email,
+        password :values.password,
+      });
     },
     onSuccess: () => {
       toast.success("Account created successfully")

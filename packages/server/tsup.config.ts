@@ -4,7 +4,7 @@ export default defineConfig({
   entry: ["src/index.ts"],
   outDir: "api",
   format: ["esm"],
-  target: "es2024", 
+  // target: "es2024", 
  // bundle: true,
   //splitting: false,
   //clean: true,
@@ -16,5 +16,5 @@ export default defineConfig({
     //js: `import { createRequire } from 'module'; const require = createRequire(import.meta.url);`,},
  
     external: ["events", "fs", "path", "os", "crypto", "async_hooks", "http", "https", "stream", "url", "util"],
-    noExternal: ["@repo/shared", "@repo/db","fs"],
+    noExternal: ["@repo/shared", "@repo/db"],
 });
