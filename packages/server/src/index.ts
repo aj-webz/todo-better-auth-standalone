@@ -27,7 +27,7 @@ import { openAPIRouteHandler } from "hono-openapi";
 import { Scalar } from "@scalar/hono-api-reference"
 import { auth } from "./auth";
 import { cors } from "hono/cors";
-import { handle } from "hono/vercel"
+
 
 
 
