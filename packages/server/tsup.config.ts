@@ -1,7 +1,7 @@
 import { defineConfig } from "tsup";
 
 export default defineConfig({
-  entry: ["src/index.ts"],
+  entry: ["api/index.ts"],
   outDir: "dist",
   format: ["esm"],
   // target: "es2024", 
