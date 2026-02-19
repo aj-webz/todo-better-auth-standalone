@@ -520,13 +520,13 @@ app.get("/scalar-docs",Scalar((c)=>({
   theme:"deepSpace",
   layout:"modern",
 })))
-const port=3001
-serve({
-  fetch:app.fetch,
-  port:port
-})
+// const port=3001
+// serve({
+//   fetch:app.fetch,
+//   port:port
+// })
 
-console.log("Server running in http://localhost:3001");
+// console.log("Server running in http://localhost:3001");
 
 
 
