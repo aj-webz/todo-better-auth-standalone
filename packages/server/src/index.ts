@@ -48,8 +48,6 @@ app.use(
     allowHeaders: ["Content-Type","Authorization","Cookie"],
     allowMethods: ["POST", "GET", "OPTIONS","PATCH","DELETE"],
     credentials: true,
-    //exposeHeaders: ["user"]
-       
   }),
 );
 

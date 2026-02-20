@@ -5,10 +5,10 @@ export default defineConfig({
   outDir: "api",
   format: ["esm"],
   // target: "es2024", 
-   bundle: true,
+  bundle: true,
   splitting: false,
   clean: true,
-  //platform: "node",
+  platform: "node",
   //minify: true,
   
   //shims: true, 

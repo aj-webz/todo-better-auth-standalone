@@ -31,7 +31,6 @@ export const auth = betterAuth({
       httpOnly: true,
     },
   },
-  plugins: [expo()],
   secret: process.env.BETTER_AUTH_SECRET!,
   baseURL: process.env.BETTER_AUTH_URL!,
 });

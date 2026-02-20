@@ -1,39 +1,30 @@
-import pkg from "pg";
-import { drizzle } from "drizzle-orm/node-postgres";
+import postgres from "postgres";
+import { drizzle } from "drizzle-orm/postgres-js";
 import * as schema from "./schema";
-import { user,session,account } from "./auth-schema"
+import { user, session, account } from "./auth-schema";
 
-const { Pool } = pkg;
-
-let pool: pkg.Pool | null = null;
 let db: ReturnType<typeof drizzle> | null = null;
 
 export function getDb() {
   if (db) return db;
 
   const DATABASE_URL = process.env.DATABASE_URL;
+  if (!DATABASE_URL) throw new Error("DATABASE_URL is missing");
 
-  if (!DATABASE_URL) {
-    throw new Error("DATABASE_URL is missing");
-  }
-   const isLocal = DATABASE_URL.includes("localhost") || DATABASE_URL.includes("postgres:5432");
+  const isLocal = DATABASE_URL.includes("localhost") || DATABASE_URL.includes("127.0.0.1");
 
-
-  pool = new Pool({
-    connectionString: DATABASE_URL,
-    max: 2,
-    connectionTimeoutMillis: 5000,
-    idleTimeoutMillis: 10000,
-    ssl: isLocal ? false : {
-      rejectUnauthorized: false, 
-    },
+  const client = postgres(DATABASE_URL, {
+    max: 1,
+    prepare: false,
+    ssl: isLocal ? false : "require",
+    idle_timeout: 20,
+    connect_timeout: 10,
   });
 
-  db = drizzle(pool, { schema });
-
+  db = drizzle(client, { schema });
   return db;
 }
 
-export {todos} from "./schema";
-export { users} from "./schema"
-export {user,account,session};
+export { todos } from "./schema";
+export { users } from "./schema";
+export { user, account, session };

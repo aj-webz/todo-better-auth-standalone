@@ -2,10 +2,6 @@
   "name": "todo-worker",
   "version": "0.0.1",
   "private": true,
-  "workspaces":["apps/*","packages/*"],
-    "resolutions": {
-    "react": "^19.1.0"
-  },
   "scripts": {
     "build": "turbo build",
     "dev": "turbo dev",
